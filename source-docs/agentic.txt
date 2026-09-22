@@ -1,0 +1,48 @@
+[ Agentic AI ]
+
+ให้เรารู้ที่มาของ AI ก่อนผ่านสิ่งนี้ --> [ Hierarchy ของ AI ] --> [ Ref pic : "hierarchy_of_AI.png" ]
+
+Description :
+- AI (Artificial Intelligence) :
+  - Automatic System ที่จัดการงานแทนมนุษย์ได้
+  - ทำงานภายใต้ Logical "Rule-Based" ซึ่งก็คือ "ถ้า AI ทำงานภายใต้ Rule นี้ ก็จะได้ Action แบบนี้"
+- ML (Machine Learning)
+  - Rule-Based system ที่สามารถอัพเดทได้
+  - [Origin] : ปกติที่เราสร้างรูปแบบของ Rule-Based แต่ละอย่าง --> ตัว Data ที่ใช้งานสำหรับแต่ละ Rule-Based จะมีการแบ่งข้อมูลออกเป็นชุดๆโดยใช้ [สมการ / method] ต่างๆเช่น ทำ Classification , Clustering , Outlier Detection
+    --> ซึ่งแต่ละ Rule-Based จะมี Policy Fix ผ่านสมการ / method เพื่อให้ข้อมูลที่เกิดการเปลี่ยนแปลงภายใน Rule-Based นั้น "ไม่ทำให้สิ่งที่ทำไปแล้วถูกเปลี่ยนแปลง" เช่น Classification ข้อมูลใหม่ก็จะลงภายใต้เส้นที่กำหนดแล้วเหมือนเดิม , Clustering มี 2 วง ตัวข้อมูลที่เพิ่มมาใหม่ก็จะไม่ทำให้จำนวนวงเพิ่มขึ้น
+  - [Purpose] : ML มีจุดประสงค์เพื่อ "เวลามี Update ข้อมูลใหม่ ตัว Rule-Based ที่มีอยู่สามารถอัพเดทตัวเองได้ผ่านการเรียนรู้ใหม่แล้วพัฒนาต่อยอดเป็น [สมการ / method] รูปแบบใหม่ได้ตลอดเวลา"
+- DL (Deep Learning)
+  - ML มี Component นึงที่สำคัญมากๆ คือ "การสอนของมนุษย์"
+    - Supervised Learning : มนุษย์ Label ไว้แล้วว่าแต่ละ Group ที่แบ่งไว้คืออะไรบ้างโดยชัดเจน --> [ รู้ว่าเป็น Pattern ไหน , ระบุได้ว่ามี Feature อะไรบ้าง ]
+    - Unsupervised Learning : จัดกลุ่มไว้เฉยๆ แต่ยังไมไ่ด้ Label
+      --> เกิดจากว่า "มนุษย์ไม่สามารถระบุให้กับข้อมูล Group นั้นได้ว่ามี Feature อะไรบ้าง ? มี Pattern อะไรบ้าง ?"
+      --> Solution : ทำ Setting เพิ่ม โดยการทำสิ่งที่เรียกว่า "Neural Network" เพื่อกำหนด Feature และ Pattern ออกมาได้ --> จากนั้นนำ Outcome สุดท้าย ออกมาทำ "Backpropagation" เพื่อเทียบกับ Outcome จาก Group เดิม --> จากนั้นอัพเดทผ่านตัวแปร "Weight" เพื่อเพิ่ม Acc ให้มากขึ้น
+- Generative AI (GA)
+  - Model ที่พัฒนามาจาก DL เราจะเรียกว่า "Discriminator Model" ซึ่งเป็น Model on production จริง
+  - แต่ GA เราจะเพิ่มมาอีก 1 Model เพื่อลับคมตัว Discriminator Model ให้เฉียบคมขึ้นซึ่งจะเรียกว่า "Generator Model" โดยมี Flow เป็น [ Random Input Vector -> Generator Model -> Outcome เป็น "Generated Fake Example" ] --> เราเอา Generated Fake Example มายัดเข้า Discriminator Model เพื่อให้ตัว Model บอกว่าจริงหรือเท็จ แล้วถ้ามีความแตกต่างอะไรเกิดขึ้น ก็จะทำเป็น "Binary Classification" แยกเอาไว้ช่วยเกลาไอตัว Discriminator Model ให้เฉียบคมขึ้นอีกที
+
+
+จาก Hierarchy ที่เราเข้าใจทั้ง 4 ตัวนี้   --นำไปสู่-->  ความหมายของ Agentic AI
+
+[ Agentic AI คืออะไร? ]
+- Agentic คือ Workflow การทำงานของ Multi-Agent ชุดนึง (Agent = AI 1 ตัว)
+  - Agentic = Manager
+  - Agent = Engineer
+- Human จะเป็นคน Input "Goal" เข้าไป แล้ว ตัว Agentic จะให้ Agents ที่อยู่ใน Workflow ทำการดำเนินการจนเสร็จสิ้นภารกิจแล้วได้ Outcome ที่ตรงตาม Goal ออกมา
+
+[ How Does Agentic AI Work ?]
+- User Input "Goal" เข้ามา --> Agentic วิเคระาห์ผ่าน LLM ของ Agentic ว่าควรจะไปหาข้อมูลที่เกี่ยวข้องจากไหน --> ไปหาข้อมูลที่เกี่ยวข้องมา ไม่ว่าจะจาก VectorDB + DB ที่มีอยู่ , Ref จากแหล่งต่างๆ --> LLM วิเคระาห์จากข้อมูลที่ได้ว่าเราควรจะ Action อะไรบ้าง ไปทางไหน --> ส่งให้ Agent ทำการ Action ต่อ
+  [ Ref pic : "agentic_workflow.png" ]
+
+[ Design Patterns ] --> [ Ref pic : "agentic_design_pattern.png" ]
+1. Reflection Pattern : ตอน Generate จนได้ Outcome ออกมา --> เราจะตรวจสอบ outcome นั้น (Reflect) จนมั่นใจว่าชัวร์แล้วจึงค่อย Response กลับไป
+2. Planning Pattern : ตอน Generate จนได้ Task ออกมาชุดนึงแล้ว --> เราจะ Replan ชุด task นั้นจน Optimized แล้วจึงค่อย Response กลับไป
+3. Tool Use Pattern : Agentic จะเลือก "Tool ที่เหมาะสม" ให้กับ Goal ที่ Input เข้ามา ไปดำเนินการต่อจนสำเร็จแล้ว Response Outcome กลับไป
+4. MultiAgent Pattern : Agentic รับ Goal เข้ามาแล้วให้ Agents ที่อยู่ภายในทีมจัดการดำเนินการเองจนได้ Outcome ออกมา
+
+[ Agent vs Agentic ]
+- Agent vs Agentic --> [ Agent จะรับงาน -> ทำงาน -> ส่งงาน เปรียบเหมือนเป็น Engineer ] / [ Agentic คือคนที่ทำตั้งแต่รับ Task -> วิคราะห์ + ใส่ความเป็นเหตุผล (Reasoning) -> การวิธีการที่ Optimized สุด -> Implement -> ตรวจสอบ + Final Decision -> ชัวร์แล้วว่าสิ่งที่จะส่งมันดีที่สุดแล้วจึงค่อยส่งงาน -> รับ Feedback จาก Human + เรียนรู้จากรูปแบบการทำงานเดิมแล้วพัฒนาให้ดีขึ้นก่อนจะเริ่มงานถัดๆไป ]
+                                                                                                                                                |
+                                                                                                                                                |
+                                                                                                                                                v
+                                                                                                                                                Reasoning = ให้ Agentic สามารถคิดเป็น Logical พร้อมกับใส่สภาพแวดล้อมการคิดแบบบมุนษย์ที่ไมไ่ด้ใช้แค่ Logical อย่างเดียว แต่ต้องใช้สิ่งจำพวก คุณธรรม จริยธรรม Empathization etc. ด้วย เพื่อให้การตัดสินใจของ Agentic มีความใกล้เคียงกับมนุษย์มากที่สุด

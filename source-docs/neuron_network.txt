@@ -1,0 +1,27 @@
+Evolution of Neuron Network
+
+1) Perception : Feed Forward
+
+o Input 1 (x1) -----w1-----|
+                           |              Sum              | Threshold => Activation Functions |
+o Input 2 (x2) -----w2-----|------x1w1 + x2w2 + x3w3-----> |                   o               | ------> Output ใหม่ที่ต้องการ
+                           |                               |  พิจารณาว่าข้อมูล Set นี้ ควร/ไม่ควรใช้   |
+o Input 3 (x3) -----w3-----|
+
+2) MLP (Multi Layer Percepton) --> แก้ปัญหาเรื่อง XOR problem => ไม่สามารถใช้วิธีการทางสถิติในการแยกข้อมูลชุดนั้นได้
+   [ Ref : "mlp_neuron_network.png"]
+
+---
+
+[ Back-propagation ]
+- เป็นการหา diff ของ Prediction-Actual = Loss --> แล้วเอา Loss ไปปรับ(Optimizer) ตัว Weight ด้วย "Calculus"
+
+----------------------------------------------------------------------------------------------------------
+์[ Note ] :
+ML -> ใช้กับชุดข้อมุลที่เรารู้ Pattern --> จึงสามารถแบ่งกลุ่ม/จัดกลุ่มได้
+Neuron Network -> ใช้กับชุดข้อมูลที่เราไม่รู้ Pattern --> พยายามหาจุดร่วม --> แปลงเป็นชุดข้อมูลใหม่เพื่อให้สามารถแบ่งกลุ่ม/จัดกลุ่มได้
+----------------------------------------------------------------------------------------------------------
+[ ประเภทของ Neuron Network ]
+CNN -> ใช้กับภาพเป็นหลัก -> ซอยภาพเป็นส่วนย่อยๆแล้วนำไปวิเคราะห์ -> Outcome ออกมาเป็น "Matrix"
+RNN -> ใช้กับ Time-Series / Translater / เสียง
+Reinforcement Learning (Deep Learning) -> เอา State ที่ Input มาพิจารณว่าเราควรจะ Action ไปทางไหน -> แล้วประเมิน Value จาก 2 อย่างนี้ แล้วเอาอันที่ดีที่สุด

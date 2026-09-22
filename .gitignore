@@ -1,0 +1,9 @@
+# Claude Code session state — transcripts, local settings, agent configs.
+# Not project content; irrelevant to anyone cloning this repo.
+.claude/
+
+# impeccable skill's local cache and critique history — regenerated per machine.
+.impeccable/
+
+# OS/editor noise
+.DS_Store
