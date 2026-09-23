@@ -1,6 +1,84 @@
 # Progress
 
-_Last updated: 2026-09-22, `tower.js?v=97`._
+_Last updated: 2026-09-23, `tower.js?v=98`, deployed live on GitHub Pages._
+
+## Round 33 — deployed to GitHub Pages, then fixed a real fall-through-the-map bug near the lift
+Two separate threads this round.
+
+**Deploy.** Compared Vercel (Hobby plan's own docs: "restricts users to non-commercial, personal
+use only" — this project is for internal company use, so Hobby doesn't apply and Pro is $20/seat)
+and Railway (free tier is $1/month of credit, nowhere near enough to keep a site running
+continuously — priced for compute-metered apps, not for serving 796 KB of static files) against
+Cloudflare Pages and GitHub Pages. User created a public GitHub repo
+(`Phu-MUI-Robotics/ai-3d-interaction`) and asked which of those last two fit better; since they
+confirmed the deployed site itself doesn't need to be access-gated ("ใครมีลิงก์ก็เข้าได้"), the one
+real differentiator (Cloudflare Access) doesn't matter, so GitHub Pages — zero extra accounts,
+deploy straight from the repo already sitting there — won on simplicity.
+- `git ls-remote` on the new repo came back empty — the user's own `git push` from an earlier
+  local-command run hadn't actually landed (probably a credential prompt that failed silently).
+  Worth knowing before assuming a repo the user says they "pushed to" actually has anything in it.
+- `index.html` was still the old 2D version; every host would have served it as the site root
+  instead of the game. Moved verbatim to `legacy-2d.html` (kept, not deleted — nothing thrown
+  away) and replaced `index.html` with a 19-line redirect to `tower.html` (meta-refresh + JS
+  `location.replace`, both pointing at a relative path, so it survives being served from any
+  subpath).
+- `.gitignore` added before the first `git add`, not after: excludes `.claude/` (14 MB of session
+  transcripts and local settings — not project content, and the first thing that would have
+  leaked into a *public* repo if this had been skipped) and `.impeccable/`'s local cache.
+  `memory-bank/`/`source-docs/` were checked for anything sensitive (grepped for company
+  domain/email/secret-shaped strings — one incidental hit, the word "internal" used generically)
+  and kept in the repo; they're legitimate project history, not leaks.
+- `git init` in this folder, first commit (27 files, nothing from the ignored dirs — confirmed by
+  reading `git status --short` before `git add`, not just trusting `.gitignore` silently), then
+  `git push` failed here (`could not read Username for 'https://github.com': Device not
+  configured` — this sandbox has no interactive credential prompt and `osxkeychain` had nothing
+  stored yet for github.com). Handed the exact two commands to the user to run from their own
+  Terminal. **They pushed successfully and enabled Pages themselves** — confirmed live at
+  `https://phu-mui-robotics.github.io/ai-3d-interaction/tower.html`, first real deployment of
+  this project outside the local dev server.
+
+**The lift fall-through bug.** User's live-site screenshots showed the player stranded outside
+the tower's structure near the lift shaft. Traced to `step()`'s movement clamp
+(`const inLift = ... < 5.6`): whenever the player was within that radius of the lift, ALL
+clamping was skipped outright ("no clamp inside the lift shaft"). But the lift's actual walkable
+surface is a cylinder of radius ~2.5-2.7 (`pad` — `CylinderGeometry(2.5, 2.7, .3, 20)`), and there
+is no walkway mesh at all bridging the ~2.6-unit gap between the deck's own clamp edge (8.5) and
+that pad. The 5.6 radius was chosen specifically to start *inside* the deck (comfortably below
+8.5) so boarding felt smooth — but the same permissiveness let the player wander anywhere in that
+whole circle, including the roughly 90% of it that has no floor under it at all: past the pad's
+far edge, off to either side, well out into the exterior backdrop. Confirmed geometrically with
+Python (deck rect, pad circle, and the old 5.6 circle's actual footprint) before touching code.
+- First fix attempt (a rectangle bridging deck-to-pad, reusing the *full* deck z-range) failed
+  its own verification sweep: 163 of ~500 swept points landed at things like `(10.76, -2.8)` —
+  outside the deck, short of the pad, over nothing. The rectangle was letting the player stand
+  anywhere along x between the deck and the pad at *any* z the deck normally allows, including
+  far z values nowhere near the actual crossing line.
+- Second attempt narrowed that rectangle's z-range to hug the pad, which fixed the sweep but
+  introduced a **seam mismatch**: right at the deck/corridor boundary (x=8.5), the two rectangles
+  didn't agree on the allowed z-range, so a player walking along the deck's far z-edge and then
+  drifting past x=8.5 would get yanked several units in z in a single frame.
+- **Shipped fix**: not a zone-detect-then-clamp (the pattern every other special zone in this
+  game uses — lobby, Jev room, Jev doorway), because the deck and the lift pad are genuinely
+  disjoint shapes with a real gap between their edges, and no single flat zone boundary can
+  bridge that without either exposing a stretch of "floor" that isn't there or creating a seam.
+  Instead: three shapes (deck rectangle, a bridging corridor rectangle `LIFT_CORRIDOR`, and the
+  pad as a circle of radius `LIFT_PAD_R=2.3`, a safety margin inside its visual 2.5), and each
+  frame, if the player's new position isn't inside *any* of the three, find whichever of the
+  three has the nearest edge and snap there — same "stopped at the boundary" feel as a normal
+  wall clamp, just made of three pieces instead of one. Two small top-level helpers
+  (`nearestInRect`, `nearestOnLiftPad`) do the projection.
+- Verified this design, not just the numbers, before writing the JS: swept ~500 points around the
+  old buggy radius plus a full grid over the whole approach area — zero landed outside deck ∪
+  corridor ∪ pad. Walked a simulated approach both straight-on and diagonally from deep on the
+  deck — max single-frame displacement equaled the intended step size exactly (0.12, matching the
+  simulated per-frame move), i.e. **provably zero snapping**, not just "small enough to not
+  notice." Confirmed deck-interior points are never touched by any of this (0/578 in the sweep).
+  Confirmed the hard-coded lift-exit docking position (`LIFT_X-3.8, LIFT_Z`) still lands exactly
+  where it already did (0 movement needed) — riding the lift itself is unaffected.
+- `node --check` clean, stale comment elsewhere (Jev clamp's own note referenced the now-deleted
+  `inLift` flag by name) updated to point at this instead. `tower.js?v=98`.
+- **Committed locally, not yet pushed** — the fix needs the user's own `git push` again for the
+  same credential reason as the initial deploy (this sandbox still can't authenticate to GitHub).
 
 ## Round 32 — the "4 floors" typo had a second copy the scan missed
 Round 31's stale-fact catch was the screen-reader-only `<h1>` in `tower.html`; the user

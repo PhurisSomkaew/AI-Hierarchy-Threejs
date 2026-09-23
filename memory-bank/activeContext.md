@@ -1,20 +1,32 @@
 # Active Context
 
-_Last updated: 2026-09-22, `tower.js?v=96`. See `progress.md` for full detail._
+_Last updated: 2026-09-23, `tower.js?v=98`. Live at https://phu-mui-robotics.github.io/ai-3d-interaction/tower.html — see `progress.md` for full detail._
 
 ## What's next
-Jev room done (24-28), player model swapped to RobotExpressive (30), and round 31 was a copy
-pass removing the machine-written register from the Thai text: ` · ` 40 → 3 and em dashes 87 → 1
-across 668 strings, floor labels rewritten as places, quest lines de-duplicated. **The boards
-were punctuation-only by explicit instruction** — the teaching content on them follows the
-user's own docs and rewording it would lose what they mean to say. Also caught a stale
-screen-reader heading still claiming 4 floors. **Rounds 30-31 not yet screenshotted.** Open:
-- **Which way the robot faces when walking** — the loader still applies the KayKit-era 180° yaw
-  correction (`root.rotation.y = Math.PI`); if it walks backwards that one line is the fix.
-- **The lift prompt on floors 2-6** (fixed in round 30, unverified) and the reworded lift list.
-- Dialogue was left as-is apart from punctuation; if the user wants it reworded too, that is the
-  next copy pass, and the same rule applies — vary what describes different things, keep
-  repeated UI states parallel.
+**The project is now deployed** — public GitHub repo `Phu-MUI-Robotics/ai-3d-interaction`,
+served via GitHub Pages at `https://phu-mui-robotics.github.io/ai-3d-interaction/tower.html`
+(root `/` redirects there; the old 2D version lives on at `/legacy-2d.html`, not deleted).
+`.gitignore` excludes `.claude/` and `.impeccable/`. **This sandbox cannot `git push`** — no
+GitHub credentials configured here — so every push in this project's history so far has needed
+the user to run `git push` themselves from their own Terminal after I commit locally; expect the
+same next time there's something to ship.
+
+Round 33 then fixed a real bug the user found on the live site: near the lift, the movement
+clamp used to disable ALL bounds checking within a radius of 5.6 around the lift — chosen only
+so the handoff from the deck felt smooth, but it also left the player free to wander into the
+~90% of that circle that has no floor at all, ending up stranded in the exterior backdrop. Fixed
+with a proper three-shape nearest-point clamp (deck rectangle, a bridging corridor rectangle,
+the pad as a circle) instead of the zone-detect-then-clamp pattern every other special zone in
+this game uses — that pattern doesn't work here because the deck and the pad are genuinely
+disjoint with a real gap between them. Verified via Python sweep before shipping: zero invalid
+landings, zero snapping (max frame displacement exactly matched the simulated step size), deck
+interior never touched, the lift's exit docking position unaffected. **Committed locally
+(`tower.js?v=98`), not yet pushed** — needs the user to push from their own Terminal, then
+GitHub Pages needs ~1-2 minutes to rebuild before the fix is live to test.
+
+On resuming: confirm the push landed, then have the user re-test the exact scenario from their
+screenshots (walking to the lift on any floor 1-6) to confirm they can no longer end up outside
+the tower structure.
 
 ## How floor 6 got here (chronological — see `progress.md` for full detail per round)
 1. Built end-to-end: concept, PM/UX/UI/Frontend/Backend/Infra-DevOps/QA + Data/Security bench,

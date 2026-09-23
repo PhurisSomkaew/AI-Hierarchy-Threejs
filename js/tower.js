@@ -859,6 +859,26 @@ export async function boot() {
 
   /* ------------------------------------------------------ the lift ----- */
   const LIFT_X = 13.4, LIFT_Z = -3;
+  /* the lift pad's own walkable radius (visual cylinder is 2.5/2.7 top/
+     bottom — 2.3 stays inside it) and a rectangle bridging the ~2.6-unit
+     gap between the deck's clamp edge and the pad, since there is no
+     walkway mesh there — this rectangle IS the floor as far as movement
+     is concerned. Used by the movement clamp in step(); see that call
+     site for why a simple "detect a zone, clamp within it" check (the
+     pattern every other zone in this game uses) doesn't work here: the
+     deck and the pad are genuinely disjoint shapes with a real gap
+     between their edges, and detecting a zone with a radius wide enough
+     to reach across that gap smoothly is what the original code did —
+     and is exactly the bug report (round 33): that same wide radius
+     also disabled clamping far past the pad, over open exterior air,
+     which is where the screenshots show the player ending up. */
+  const LIFT_PAD_R = 2.3;
+  const LIFT_CORRIDOR = { x0: FW / 2 - 1, x1: 11.3, z0: -6.5, z1: .5 };
+  const nearestInRect = (x, z, x0, x1, z0, z1) => [Math.max(x0, Math.min(x1, x)), Math.max(z0, Math.min(z1, z))];
+  const nearestOnLiftPad = (x, z) => {
+    const dx = x - LIFT_X, dz = z - LIFT_Z, d = Math.hypot(dx, dz);
+    return d <= LIFT_PAD_R ? [x, z] : [LIFT_X + dx / d * LIFT_PAD_R, LIFT_Z + dz / d * LIFT_PAD_R];
+  };
   const lift = new THREE.Group();
   lift.position.set(LIFT_X, 0, LIFT_Z);
   {
@@ -4135,11 +4155,6 @@ export async function boot() {
         player.position.x = Math.max(-12, Math.min(16, player.position.x));
         player.position.z = Math.max(-1.5, Math.min(20, player.position.z));
       } else {
-        /* the lift sits outside the deck's own footprint (LIFT_X is past the
-           deck edge by ~4.9 units) — this radius must clear that gap or the
-           deck clamp below traps the player and the lift is unreachable on
-           foot from every floor but the lobby; 5.6 clears it with room to spare */
-        const inLift = Math.hypot(player.position.x - LIFT_X, player.position.z - LIFT_Z) < 5.6;
         /* the Jev bridge+room sits through floor 5's own back wall,
            outside the normal deck rectangle — but as of round 18 it is
            never walked into, only warped into via jevWarp() (see that
@@ -4149,7 +4164,11 @@ export async function boot() {
            whatever wall is closest). That means the clamp only needs two
            flat states, not a hand-off between bridge-width and room-width
            the way it did when the bridge itself was walkable — jevIn
-           picks which box applies, exactly like inLift picks the lift's. */
+           picks which box applies (round 33 replaced the lift's own
+           single-box "inLift" flag with a proper nearest-of-three-shapes
+           clamp — see LIFT_CORRIDOR's comment — but the Jev room's own
+           two flat states are unaffected: unlike the lift, they're not
+           separated by a real gap, so the simple version still holds). */
         /* detection is deliberately looser than the clamp target below
            it (a .4 buffer past x0/z0 — there's no neighbouring soft zone
            on those two edges to hand off to, unlike z1 which already
@@ -4161,9 +4180,7 @@ export async function boot() {
         const inJevDoorWalk = level === 5 && !jevIn
           && player.position.x > JEV_DOOR_WALK.x0 - .4 && player.position.x < JEV_DOOR_WALK.x1 + .4
           && player.position.z > JEV_DOOR_WALK.z0 - .4 && player.position.z < JEV_DOOR_WALK.z1;
-        if (inLift) {
-          // no clamp inside the lift shaft
-        } else if (level === 5 && jevIn) {
+        if (level === 5 && jevIn) {
           player.position.x = Math.max(JEV_ROOM.x0 + .3, Math.min(JEV_ROOM.x1 - .3, player.position.x));
           player.position.z = Math.max(JEV_ROOM.zFar + .3, Math.min(JEV_WALK_NEAR, player.position.z));
         } else if (inJevDoorWalk) {
@@ -4175,8 +4192,35 @@ export async function boot() {
           player.position.x = Math.max(JEV_DOOR_WALK.x0, Math.min(JEV_DOOR_WALK.x1, player.position.x));
           player.position.z = Math.max(JEV_DOOR_WALK.z0, Math.min(JEV_DOOR_WALK.z1, player.position.z));
         } else {
-          player.position.x = Math.max(-FW / 2 + 1, Math.min(FW / 2 - 1, player.position.x));
-          player.position.z = Math.max(FZ - FD / 2 + 1, Math.min(FZ + FD / 2 - .8, player.position.z));
+          /* the deck, the lift pad, and the corridor bridging the gap
+             between them are three separate shapes with real gaps in
+             between (see LIFT_CORRIDOR's own comment) — so this can't be
+             "detect which zone you're in, then clamp within it" the way
+             every other zone above is. Instead: if the player's raw new
+             position already sits inside any of the three, leave it
+             alone; otherwise, find whichever of the three shapes has the
+             nearest edge and snap there. That's the same "stopped at the
+             boundary you're walking into" feel as a normal wall, applied
+             to a boundary made of three pieces instead of one rectangle. */
+          const DX0 = -FW / 2 + 1, DX1 = FW / 2 - 1, DZ0 = FZ - FD / 2 + 1, DZ1 = FZ + FD / 2 - .8;
+          const px = player.position.x, pz = player.position.z;
+          const onDeck = px >= DX0 && px <= DX1 && pz >= DZ0 && pz <= DZ1;
+          const onCorridor = px >= LIFT_CORRIDOR.x0 && px <= LIFT_CORRIDOR.x1 && pz >= LIFT_CORRIDOR.z0 && pz <= LIFT_CORRIDOR.z1;
+          const onPad = Math.hypot(px - LIFT_X, pz - LIFT_Z) <= LIFT_PAD_R;
+          if (!(onDeck || onCorridor || onPad)) {
+            const cands = [
+              nearestInRect(px, pz, DX0, DX1, DZ0, DZ1),
+              nearestInRect(px, pz, LIFT_CORRIDOR.x0, LIFT_CORRIDOR.x1, LIFT_CORRIDOR.z0, LIFT_CORRIDOR.z1),
+              nearestOnLiftPad(px, pz)
+            ];
+            let best = cands[0], bestD = Math.hypot(best[0] - px, best[1] - pz);
+            for (let i = 1; i < cands.length; i++) {
+              const d = Math.hypot(cands[i][0] - px, cands[i][1] - pz);
+              if (d < bestD) { best = cands[i]; bestD = d; }
+            }
+            player.position.x = best[0];
+            player.position.z = best[1];
+          }
         }
       }
       faceY = Math.atan2(rx, rz) + Math.PI;
